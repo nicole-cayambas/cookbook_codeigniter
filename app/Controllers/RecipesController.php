@@ -124,4 +124,142 @@ class RecipesController extends BaseController
 
         return view('recipe', $data);
     }
+
+    public function create()
+    {
+        // Load the form helpers
+        helper('form');
+
+        // Load the configuration for our application
+        $config = config('Recipe');
+
+        $data = [
+            'page_title' => "New recipe",
+            'max_ingredient' => $config->nb_ingredient,
+        ];
+
+        return view('form_recipe', $data);
+    }
+
+    public function edit (int $id)
+    {
+        // Create an instance of our library
+        $myRecipes = new MyRecipes();
+
+        // Load the form helpers
+        helper('form');
+
+        // Load the configuration for our application
+        $config = config('Recipe');
+
+        $data = [
+            'page_title' => "Edit a recipe",
+            'max_ingredient' => $config->nb_ingredient,
+        ];
+
+        /* Get the recipe for the id received in parameter.
+        * If the recipe does not exist, throw a page not found exception (404 error)
+        */
+        if ( ! $data['recipe'] = $myRecipes->getRecipeById($id))
+        {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound();
+        }
+
+        return view('form_recipe', $data);
+    }
+
+    public function delete (int $id)
+    {
+        // Create an instance of our library
+        $myRecipes = new MyRecipes();
+
+        if ($myRecipes->deleteRecipe($id))
+        {
+            return redirect()->to('/')->with('message', "The recipe was successfully deleted.");
+        }
+        else
+        {
+            return redirect()->to('/')->with('errors', $myRecipes->getErrors());
+        }
+    }
+
+    public function save (int $id = null)
+    {
+        log_message('debug', ($id === null) ? "Save new recipe" : "Save recipe id $id");
+
+        // Load the configuration for our application
+        $config = config('Recipe');
+
+        /*
+         * Define the validation rules for our form
+         */
+        $rules = [
+            'title' => [
+                'label' => "Title",
+                'rules' => "required|max_length[100]|is_unique[recipe.title,id,{$id}]"
+            ],
+            'instructions' => [
+                'label' => "Instructions",
+                'rules' => "required|string"
+            ],
+        ];
+
+        for ($i = 0; $i < $config->nb_ingredient; $i++)
+        {
+            $ingredient_no = $i + 1;
+
+            $rules["ingredient_quantity_{$i}"] = [
+                'label' => "Quantity for ingredient {$ingredient_no}",
+                'rules' => "permit_empty|string|max_length[10]|required_with[ingredient_name_{$i}]"
+                ];
+
+            $rules["ingredient_name_{$i}"] = [
+                'label' => "Name of ingredient {$ingredient_no}",
+                'rules' => "permit_empty|string|max_length[50]|required_with[ingredient_quantity_{$i}]"
+                ];
+        }
+
+        /*
+         * Validate the form data
+         */
+        if ( ! $this->validate($rules))
+        {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        // Create an instance of our library
+        $myRecipes = new MyRecipes();
+
+        // Get form data
+        $form_data_recipe = [
+            'title' => $this->request->getPost('title'),
+            'instructions' => $this->request->getPost('instructions'),
+        ];
+
+        // Extract and validate the ingredients of this recipe
+        $form_data_ingredients = [];
+
+        for ($i = 0; $i < $config->nb_ingredient; $i++)
+        {
+            if ( ! empty($this->request->getPost("ingredient_quantity_{$i}")) &&
+                 ! empty($this->request->getPost("ingredient_name_{$i}")))
+            {
+                $form_data_ingredients[] = [
+                    'quantity' => $this->request->getPost("ingredient_quantity_{$i}"),
+                    'name' => $this->request->getPost("ingredient_name_{$i}"),
+                ];
+            }
+        }
+
+        // Get the form data and save it
+        if ($myRecipes->saveRecipe($id, $form_data_recipe, $form_data_ingredients))
+        {
+            return redirect()->to('/')->with('message', "Recipe saved successfully");
+        }
+        else
+        {
+            return redirect()->back()->withInput()->with('errors', $myRecipes->getErrors());
+        }
+    }
+
 }

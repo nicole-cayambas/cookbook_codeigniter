@@ -46,6 +46,18 @@ article
 
     <div class="container">
 
+<?php if (session('errors') !== null) : ?>
+        <div class="alert alert-danger">
+            <?= implode('<br>', session('errors')) ?>
+        </div>
+<?php endif; ?>
+
+<?php if (session('message') !== null) : ?>
+        <div class="alert alert-success text-center">
+            <?= session('message'); ?>
+        </div>
+<?php endif; ?>
+
         <h3>List of recipe</h3>
         <div class="my-3">
             <?= form_open('/', ['class' => 'form-inline']) ?>
@@ -61,7 +73,12 @@ article
 
                 <?= form_submit('search_submit',
                                 "Search",
-                                ['class' => 'btn btn-outline-primary my-1']) ?>
+                                ['class' => 'btn btn-outline-primary my-1 mr-3']) ?>
+
+                <?= anchor('/create',
+                           'New recipe',
+                           ['class' => 'btn btn-outline-success my-1 mr-3']) ?>
+
             <?= form_close() ?>
         </div>
 
@@ -78,7 +95,7 @@ article
 </main>
 
 <footer>
-    <p class="text-center">&copy; 2020 My recipe website</p>
+    <p class="text-center">&copy; 2021 <?= anchor('/', "My recipe website")?></p>
 </footer>
 
 </body>

@@ -11,5 +11,6 @@ class IngredientModel extends Model
     protected $allowedFields = [
         'name',
         'quantity',
+        'recipe_id',
     ];
 }
